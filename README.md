@@ -1,0 +1,2 @@
+# natural-language-driven-systemverilog-generation-and-verification-framework
+A Natural Language–Driven Framework for Automated SystemVerilog Generation and Hardware Verification. The system translates user-defined specifications into synthesizable RTL and self-checking testbenches, integrates a Python-based reference model for validation, and enables end-to-end verification through ModelSim simulation.
