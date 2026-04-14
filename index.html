@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NL → SystemVerilog Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c10;
+  --bg2:#0f1318;
+  --bg3:#141920;
+  --bg4:#1a2030;
+  --border:#1e2636;
+  --border2:#273045;
+  --accent:#00d4ff;
+  --accent-dim:rgba(0,212,255,0.12);
+  --accent-glow:rgba(0,212,255,0.25);
+  --green:#00e676;
+  --red:#ff4d4d;
+  --amber:#ffaa00;
+  --text:#d0dcea;
+  --text2:#7a90aa;
+  --text3:#3d5068;
+  --mono:'IBM Plex Mono','Consolas',monospace;
+  --sans:'IBM Plex Sans','Segoe UI',sans-serif;
+  --r:8px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;font-weight:400}
+
+/* ── Topbar ── */
+.topbar{
+  display:flex;align-items:center;gap:14px;
+  padding:0 28px;height:52px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:28px;height:28px;
+  background:var(--accent);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-text{font-size:13px;font-weight:600;letter-spacing:.02em;font-family:var(--mono);color:var(--text)}
+.logo-sep{color:var(--text3);font-family:var(--mono);font-size:13px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.srv-indicator{display:flex;align-items:center;gap:6px}
+.srv-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.srv-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.srv-dot.err{background:var(--red)}
+.srv-txt{font-size:11px;color:var(--text2);font-family:var(--mono)}
+
+/* ── Layout ── */
+.layout{display:grid;grid-template-columns:420px 1fr;height:calc(100vh - 52px)}
+
+/* ── Left Panel ── */
+.left{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.scroll{flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:18px}
+.scroll::-webkit-scrollbar{width:4px}
+.scroll::-webkit-scrollbar-track{background:transparent}
+.scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.section-label{
+  font-size:9px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text3);
+  margin-bottom:7px;font-family:var(--mono);
+}
+
+/* API Key */
+.key-inp{
+  width:100%;background:var(--bg3);
+  border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);font-size:11px;padding:8px 10px;
+  outline:none;font-family:var(--mono);
+  transition:border-color .2s;
+}
+.key-inp:focus{border-color:var(--accent)}
+.key-note{font-size:10px;color:var(--text3);margin-top:5px;line-height:1.5}
+.key-note a{color:var(--accent);text-decoration:none;opacity:.8}
+.key-note a:hover{opacity:1;text-decoration:underline}
+
+/* NL Input */
+.nl-frame{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;transition:border-color .2s;
+}
+.nl-frame:focus-within{border-color:var(--accent)}
+.nl-ta{
+  width:100%;min-height:120px;max-height:220px;
+  background:transparent;border:none;outline:none;
+  resize:vertical;padding:12px 14px;
+  font-size:13px;line-height:1.75;
+  color:var(--text);font-family:var(--sans);
+}
+.nl-ta::placeholder{color:var(--text3)}
+.nl-foot{
+  display:flex;justify-content:space-between;
+  padding:5px 12px;border-top:1px solid var(--border);
+  font-size:10px;color:var(--text3);font-family:var(--mono);
+}
+
+/* Examples grid */
+.ex-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ex-btn{
+  padding:7px 10px;border-radius:6px;
+  border:1px solid var(--border);background:var(--bg3);
+  font-size:11px;color:var(--text2);cursor:pointer;
+  text-align:left;line-height:1.4;font-family:var(--sans);
+  transition:all .15s;
+}
+.ex-btn:hover{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
+
+/* Options */
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.opt-inp{
+  width:100%;background:var(--bg4);
+  border:1px solid var(--border);border-radius:5px;
+  color:var(--text);font-size:11px;padding:5px 8px;
+  outline:none;font-family:var(--mono);transition:border-color .2s;
+}
+.opt-inp:focus{border-color:var(--accent)}
+.trow{display:flex;align-items:center;gap:8px;margin-top:4px}
+.tog{
+  width:32px;height:17px;border-radius:9px;
+  border:none;cursor:pointer;position:relative;
+  transition:background .2s;outline:none;
+}
+.tog.on{background:var(--accent)}
+.tog.off{background:var(--border2)}
+.tog::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:13px;height:13px;border-radius:7px;
+  background:#fff;transition:transform .2s;
+}
+.tog.on::after{transform:translateX(15px)}
+.tog-lbl{font-size:11px;color:var(--text2)}
+
+/* Run button */
+.run{
+  width:100%;padding:11px;border:none;border-radius:var(--r);
+  background:var(--accent);color:#0a0c10;
+  font-size:13px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-family:var(--sans);transition:opacity .2s,transform .1s;
+  letter-spacing:.02em;
+}
+.run:hover{opacity:.9}
+.run:active{transform:scale(.98)}
+.run:disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed;transform:none}
+.spin{width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Progress bar */
+.prog-wrap{height:1px;background:var(--border);border-radius:1px;overflow:hidden}
+.prog-bar{height:100%;background:var(--accent);width:0;transition:width .3s;border-radius:1px}
+
+/* Spec card */
+.spec{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px 14px;display:none;
+}
+.spec.show{display:block}
+.spec-row{display:flex;gap:10px;margin-bottom:5px;font-size:11px;align-items:baseline}
+.sk{color:var(--text3);min-width:72px;font-size:10px;font-family:var(--mono);flex-shrink:0}
+.sv-val{color:var(--text);font-family:var(--mono);font-size:11px}
+.tag{
+  display:inline-block;padding:1px 6px;border-radius:3px;
+  font-size:10px;font-family:var(--mono);
+  background:var(--accent-dim);color:var(--accent);
+  border:1px solid rgba(0,212,255,.2);margin:1px;
+}
+.tag.out{background:rgba(0,230,118,.08);color:#00e676;border-color:rgba(0,230,118,.2)}
+.tag.clk{background:rgba(255,170,0,.08);color:#ffaa00;border-color:rgba(255,170,0,.2)}
+.tag.rst{background:rgba(255,77,77,.08);color:#ff6b6b;border-color:rgba(255,77,77,.2)}
+
+/* ── Right Panel ── */
+.right{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.tabs{
+  display:flex;gap:1px;padding:8px 14px 0;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+}
+.tab{
+  padding:6px 14px;font-size:11px;font-family:var(--mono);
+  color:var(--text3);border-radius:6px 6px 0 0;cursor:pointer;
+  border:1px solid transparent;border-bottom:none;
+  transition:color .15s,background .15s;letter-spacing:.03em;
+}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--text);background:var(--bg);border-color:var(--border)}
+.tab-dot{
+  width:4px;height:4px;border-radius:50%;
+  display:inline-block;margin-left:5px;
+  background:var(--text3);vertical-align:middle;
+}
+.tab.active .tab-dot{background:var(--accent)}
+
+.panels{flex:1;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;overflow:auto;display:none}
+.panel.active{display:block}
+
+/* Code panels */
+.code-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 18px;background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;
+}
+.code-fn{font-size:10px;color:var(--text2);font-family:var(--mono)}
+.copy-btn{
+  font-size:10px;padding:3px 9px;border-radius:4px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--text2);cursor:pointer;font-family:var(--mono);
+  transition:all .15s;
+}
+.copy-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+pre.code{margin:0;padding:18px 22px;font-size:12px;line-height:1.7;font-family:var(--mono);overflow-x:auto}
+pre.code code{background:transparent!important;padding:0!important}
+
+/* Simulation tab */
+.sim-p{padding:18px;display:flex;flex-direction:column;gap:14px}
+.sim-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sim-btn{
+  padding:7px 16px;border-radius:6px;border:none;
+  background:var(--accent);color:#0a0c10;
+  font-size:11px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);transition:opacity .15s;
+}
+.sim-btn:hover{opacity:.85}
+.sim-btn:disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed}
+.seed-i{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);
+  font-size:11px;padding:6px 10px;width:90px;
+  outline:none;font-family:var(--mono);
+}
+.seed-i:focus{border-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px}
+.sc-lbl{font-size:9px;color:var(--text3);margin-bottom:3px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.sc-val{font-size:22px;font-weight:600;font-family:var(--mono)}
+.sc-val.g{color:var(--green)} .sc-val.r{color:var(--red)} .sc-val.c{color:var(--accent)} .sc-val.a{color:var(--amber)}
+.term{
+  background:#050810;border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 16px;min-height:280px;
+  font-family:var(--mono);font-size:11.5px;line-height:1.85;
+  color:#8899bb;overflow-y:auto;white-space:pre-wrap;word-break:break-all;
+}
+.t-pass{color:#00e676} .t-fail{color:#ff4d4d} .t-warn{color:#ffaa00}
+.t-info{color:var(--accent)} .t-head{color:var(--accent);font-weight:600}
+.t-dim{color:var(--text3)}
+.cur{display:inline-block;width:6px;height:13px;background:var(--accent);animation:blink 1s step-end infinite;vertical-align:text-bottom}
+@keyframes blink{50%{opacity:0}}
+
+/* Reference model tab */
+.ref-p{padding:18px;display:flex;flex-direction:column;gap:12px}
+.ref-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.mini-stats{display:flex;gap:8px}
+.ms{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;text-align:center;min-width:70px}
+.ms-lbl{font-size:9px;color:var(--text3);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.ms-val{font-size:18px;font-weight:600;font-family:var(--mono)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r)}
+table.vtbl{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
+.vtbl th{
+  text-align:left;padding:7px 12px;font-size:9px;font-weight:600;
+  color:var(--text3);text-transform:uppercase;letter-spacing:.08em;
+  border-bottom:1px solid var(--border);background:var(--bg3);
+  position:sticky;top:0;
+}
+.vtbl td{padding:6px 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+.vtbl tr:hover td{background:rgba(255,255,255,.02)}
+.pb{padding:1px 7px;border-radius:3px;font-size:9px;background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.2)}
+.fb{padding:1px 7px;border-radius:3px;font-size:9px;background:rgba(255,77,77,.1);color:#ff4d4d;border:1px solid rgba(255,77,77,.2)}
+
+/* Empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text3);padding:60px 20px;text-align:center}
+.empty-glyph{font-size:36px;opacity:.2}
+.empty-t{font-size:14px;color:var(--text2);font-weight:500}
+.empty-s{font-size:11px;max-width:280px;line-height:1.7;color:var(--text3)}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:20px;right:20px;z-index:999;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:10px 16px;font-size:11px;
+  font-family:var(--mono);
+  transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-color:rgba(0,230,118,.4);color:#00e676}
+.toast.err{border-color:rgba(255,77,77,.4);color:#ff4d4d}
+.toast.info{border-color:rgba(0,212,255,.4);color:var(--accent)}
+
+/* Scrollbars */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <span class="logo-text">sv</span>
+    <span class="logo-sep">/</span>
+    <span class="logo-text" style="color:var(--text2);font-weight:300">generator</span>
+  </div>
+  <div style="margin-left:18px;font-size:11px;color:var(--text3);font-family:var(--mono)">
+    Natural Language → SystemVerilog
+  </div>
+  <div class="topbar-right">
+    <div class="srv-indicator">
+      <div class="srv-dot" id="srvDot"></div>
+      <span class="srv-txt" id="srvTxt">connecting…</span>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- ── LEFT ── -->
+  <div class="left">
+    <div class="scroll">
+
+      <!-- API Key -->
+      <div>
+        <div class="section-label">API Key</div>
+        <input class="key-inp" type="password" id="apiKey"
+               placeholder="sk-ant-api03-…  (optional)"/>
+        <div class="key-note">
+          Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
+          Common circuits work without a key.
+        </div>
+      </div>
+
+      <!-- NL Requirement -->
+      <div>
+        <div class="section-label">Requirement</div>
+        <div class="nl-frame">
+          <textarea class="nl-ta" id="nlInput"
+            placeholder="Describe your circuit, e.g.:
+  full adder with inputs a b cin, outputs sum cout
+  4-bit counter with clk and active-low reset rst_n
+  8-bit ALU with a, b inputs and 2-bit opcode
+  D flip-flop with clk, d, rst_n (active-low)"></textarea>
+          <div class="nl-foot">
+            <span id="charCnt" style="font-family:var(--mono)">0</span>
+            <span>Ctrl+Enter to generate</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Examples -->
+      <div>
+        <div class="section-label">Quick Examples</div>
+
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);margin:4px 0 4px">ADDERS &amp; ARITHMETIC</div>
+        <div class="ex-grid">
+          <button class="ex-btn" onclick="ex(0)">Full adder</button>
+          <button class="ex-btn" onclick="ex(1)">Half adder</button>
+          <button class="ex-btn" onclick="ex(2)">Full subtractor</button>
+          <button class="ex-btn" onclick="ex(3)">Half subtractor</button>
+          <button class="ex-btn" onclick="ex(4)">8-bit adder</button>
+          <button class="ex-btn" onclick="ex(5)">4-bit multiplier</button>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);margin:8px 0 4px">LOGIC GATES</div>
+        <div class="ex-grid">
+          <button class="ex-btn" onclick="ex(6)">AND gate</button>
+          <button class="ex-btn" onclick="ex(7)">OR gate</button>
+          <button class="ex-btn" onclick="ex(8)">NAND gate</button>
+          <button class="ex-btn" onclick="ex(9)">XOR gate</button>
+          <button class="ex-btn" onclick="ex(10)">3-input AND gate</button>
+          <button class="ex-btn" onclick="ex(11)">4-input OR gate</button>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);margin:8px 0 4px">MUX / DEMUX / ENCODER / DECODER</div>
+        <div class="ex-grid">
+          <button class="ex-btn" onclick="ex(12)">2-to-1 MUX</button>
+          <button class="ex-btn" onclick="ex(13)">4-to-1 MUX</button>
+          <button class="ex-btn" onclick="ex(14)">8-to-1 MUX</button>
+          <button class="ex-btn" onclick="ex(15)">1-to-4 DEMUX</button>
+          <button class="ex-btn" onclick="ex(16)">4-to-2 Encoder</button>
+          <button class="ex-btn" onclick="ex(17)">3-to-8 Decoder</button>
+          <button class="ex-btn" onclick="ex(18)">Priority Encoder 4</button>
+          <button class="ex-btn" onclick="ex(19)">2-to-4 Decoder</button>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);margin:8px 0 4px">CODE CONVERTERS &amp; MISC</div>
+        <div class="ex-grid">
+          <button class="ex-btn" onclick="ex(20)">Binary to Gray</button>
+          <button class="ex-btn" onclick="ex(21)">Gray to Binary</button>
+          <button class="ex-btn" onclick="ex(22)">BCD to XS-3</button>
+          <button class="ex-btn" onclick="ex(23)">4-bit Comparator</button>
+          <button class="ex-btn" onclick="ex(24)">4-bit Parity Gen</button>
+          <button class="ex-btn" onclick="ex(25)">8-bit ALU</button>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);margin:8px 0 4px">FLIP-FLOPS &amp; LATCHES</div>
+        <div class="ex-grid">
+          <button class="ex-btn" onclick="ex(26)">D Flip-Flop</button>
+          <button class="ex-btn" onclick="ex(27)">JK Flip-Flop</button>
+          <button class="ex-btn" onclick="ex(28)">T Flip-Flop</button>
+          <button class="ex-btn" onclick="ex(29)">SR Flip-Flop</button>
+          <button class="ex-btn" onclick="ex(30)">D Latch</button>
+          <button class="ex-btn" onclick="ex(31)">SR Latch</button>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);margin:8px 0 4px">COUNTERS &amp; REGISTERS</div>
+        <div class="ex-grid">
+          <button class="ex-btn" onclick="ex(32)">4-bit Up Counter</button>
+          <button class="ex-btn" onclick="ex(33)">4-bit Down Counter</button>
+          <button class="ex-btn" onclick="ex(34)">4-bit Up-Down Counter</button>
+          <button class="ex-btn" onclick="ex(35)">BCD / Decade Counter</button>
+          <button class="ex-btn" onclick="ex(36)">4-bit Ring Counter</button>
+          <button class="ex-btn" onclick="ex(37)">4-bit Johnson Counter</button>
+          <button class="ex-btn" onclick="ex(38)">8-bit SIPO Register</button>
+          <button class="ex-btn" onclick="ex(39)">8-bit Barrel Shifter</button>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div>
+        <div class="section-label">Options</div>
+        <div class="opts">
+          <div class="opt">
+            <div class="section-label">Output dir</div>
+            <input class="opt-inp" id="outDir" value="output"/>
+          </div>
+          <div class="opt">
+            <div class="section-label">Seed</div>
+            <input class="opt-inp" id="seedOpt" type="number" value="42" min="0" max="99999"/>
+          </div>
+          <div class="opt">
+            <div class="section-label">Reference model</div>
+            <div class="trow">
+              <button class="tog on" id="refTog" onclick="tog('ref')"></button>
+              <span class="tog-lbl" id="refLbl">Enabled</span>
+            </div>
+          </div>
+          <div class="opt">
+            <div class="section-label">Auto-simulate</div>
+            <div class="trow">
+              <button class="tog off" id="simTog" onclick="tog('sim')"></button>
+              <span class="tog-lbl" id="simLbl">Disabled</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate button -->
+      <button class="run" id="runBtn" onclick="generate()">
+        <span id="runIcon">⚙</span>
+        <span id="runTxt">Generate Testbench</span>
+      </button>
+
+      <div class="prog-wrap"><div class="prog-bar" id="prog"></div></div>
+
+      <!-- Parsed spec -->
+      <div>
+        <div class="section-label">Parsed Specification</div>
+        <div class="spec" id="specCard">
+          <div class="spec-row"><span class="sk">module</span><span class="sv-val" id="spMod"></span></div>
+          <div class="spec-row"><span class="sk">type</span><span class="sv-val" id="spTyp"></span></div>
+          <div class="spec-row"><span class="sk">clock</span><span class="sv-val" id="spClk"></span></div>
+          <div class="spec-row"><span class="sk">reset</span><span class="sv-val" id="spRst"></span></div>
+          <div class="spec-row"><span class="sk">vectors</span><span class="sv-val" id="spVec"></span></div>
+          <div class="spec-row" style="align-items:flex-start">
+            <span class="sk">signals</span><span id="spSigs" style="flex:1"></span>
+          </div>
+          <div class="spec-row" style="align-items:flex-start">
+            <span class="sk">conditions</span><span id="spConds" style="flex:1;font-size:10px;color:var(--text2);font-family:var(--mono)"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── RIGHT ── -->
+  <div class="right">
+    <div class="tabs">
+      <div class="tab active" onclick="sw('dut')" id="tab-dut">dut.sv <span class="tab-dot"></span></div>
+      <div class="tab" onclick="sw('tb')" id="tab-tb">testbench.sv <span class="tab-dot"></span></div>
+      <div class="tab" onclick="sw('sim')" id="tab-sim">simulation <span class="tab-dot"></span></div>
+      <div class="tab" onclick="sw('ref')" id="tab-ref">reference model <span class="tab-dot"></span></div>
+    </div>
+
+    <div class="panels">
+
+      <!-- DUT panel -->
+      <div class="panel active" id="panel-dut">
+        <div class="empty" id="eDut">
+          <div class="empty-glyph">▲</div>
+          <div class="empty-t">dut.sv</div>
+          <div class="empty-s">Enter a requirement and click Generate Testbench</div>
+        </div>
+        <div id="wDut" style="display:none">
+          <div class="code-hdr">
+            <span class="code-fn">output/dut.sv</span>
+            <button class="copy-btn" onclick="cp('cDut')">copy</button>
+          </div>
+          <pre class="code"><code class="language-verilog" id="cDut"></code></pre>
+        </div>
+      </div>
+
+      <!-- Testbench panel -->
+      <div class="panel" id="panel-tb">
+        <div class="empty" id="eTb">
+          <div class="empty-glyph">⬡</div>
+          <div class="empty-t">testbench.sv</div>
+          <div class="empty-s">ModelSim free-edition compatible — no covergroup, no randomize()</div>
+        </div>
+        <div id="wTb" style="display:none">
+          <div class="code-hdr">
+            <span class="code-fn">output/testbench.sv</span>
+            <button class="copy-btn" onclick="cp('cTb')">copy</button>
+          </div>
+          <pre class="code"><code class="language-verilog" id="cTb"></code></pre>
+        </div>
+      </div>
+
+      <!-- Simulation panel -->
+      <div class="panel" id="panel-sim">
+        <div class="sim-p">
+          <div class="sim-hdr">
+            <button class="sim-btn" id="simRunBtn" onclick="runSim()">
+              <span id="simIcon">▶</span>
+              <span id="simTxt">Run ModelSim</span>
+            </button>
+            <input class="seed-i" id="simSeed" type="number" value="42" placeholder="seed"/>
+            <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">seed</span>
+          </div>
+          <div class="stats" id="stats" style="display:none">
+            <div class="sc"><div class="sc-lbl">Pass</div><div class="sc-val g" id="stPass">—</div></div>
+            <div class="sc"><div class="sc-lbl">Fail</div><div class="sc-val r" id="stFail">—</div></div>
+            <div class="sc"><div class="sc-lbl">Total</div><div class="sc-val c" id="stTot">—</div></div>
+            <div class="sc"><div class="sc-lbl">Coverage</div><div class="sc-val a" id="stCov">—</div></div>
+          </div>
+          <div class="term" id="term"><span class="t-dim">  SystemVerilog Simulation Terminal
+  ──────────────────────────────────────────
+  1. Enter a requirement and click Generate Testbench
+  2. Click Run ModelSim (requires vsim on PATH)
+  3. Results will appear here
+  </span><span class="cur"></span></div>
+        </div>
+      </div>
+
+      <!-- Reference Model panel -->
+      <div class="panel" id="panel-ref">
+        <div class="ref-p">
+          <div class="ref-hdr">
+            <div>
+              <div style="font-size:13px;font-weight:500">Python Reference Model</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono)">golden model — no ModelSim required</div>
+            </div>
+            <div class="mini-stats" id="miniStats" style="display:none">
+              <div class="ms"><div class="ms-lbl">Pass</div><div class="ms-val g" id="refPass">—</div></div>
+              <div class="ms"><div class="ms-lbl">Fail</div><div class="ms-val r" id="refFail">—</div></div>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table class="vtbl">
+              <thead>
+                <tr><th>#</th><th>Inputs</th><th>Expected Outputs</th><th>Result</th></tr>
+              </thead>
+              <tbody id="refTbody">
+                <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text3);font-family:var(--mono)">
+                  Generate a testbench to see reference vectors
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:5000';
+let refOn = true, simOn = false;
+
+const EXAMPLES = [
+  // 0-5  Adders & Arithmetic
+  "generate a full adder with input a b cin and output sum cout",
+  "generate a half adder with input a b and output sum cout",
+  "generate a full subtractor with inputs a b bin and outputs diff bout",
+  "generate a half subtractor with inputs a b and outputs diff borrow",
+  "generate an 8-bit full adder with inputs a b cin and outputs sum cout",
+  "generate a 4-bit multiplier with inputs a b and output product",
+  // 6-11  Gates
+  "generate a 2-input AND gate with inputs a b and output y",
+  "generate a 2-input OR gate with inputs a b and output y",
+  "generate a 2-input NAND gate with inputs a b and output y",
+  "generate a 2-input XOR gate with inputs a b and output y",
+  "generate a 3-input AND gate with inputs a b c and output y",
+  "generate a 4-input OR gate with inputs a b c d and output y",
+  // 12-19  MUX/DEMUX/Encoder/Decoder
+  "generate a 2-to-1 MUX with inputs a b sel and output y",
+  "generate a 4-to-1 MUX with inputs d0 d1 d2 d3 sel[1:0] and output y",
+  "generate an 8-to-1 MUX with inputs d0 to d7 sel[2:0] and output y",
+  "generate a 1-to-4 demultiplexer with input din sel[1:0] and outputs y0 y1 y2 y3",
+  "generate a 4-to-2 encoder with inputs i0 i1 i2 i3 and output y[1:0]",
+  "generate a 3-to-8 decoder with inputs a[2:0] en and output y[7:0]",
+  "generate a 4-input priority encoder with inputs i0 i1 i2 i3 and outputs y[1:0] valid",
+  "generate a 2-to-4 decoder with inputs a[1:0] en and output y[3:0]",
+  // 20-25  Code converters & misc
+  "generate a 4-bit binary to gray code converter with input bin[3:0] and output gray[3:0]",
+  "generate a 4-bit gray to binary converter with input gray[3:0] and output bin[3:0]",
+  "generate a BCD to excess-3 converter with input bcd[3:0] and output xs3[3:0]",
+  "generate a 4-bit magnitude comparator with inputs a[3:0] b[3:0] and outputs eq gt lt",
+  "generate a 4-bit parity generator with input data[3:0] and output parity",
+  "generate an 8-bit ALU with inputs a[7:0] b[7:0] op[2:0] and outputs result[7:0] zero cout. op=000:add 001:sub 010:and 011:or 100:xor 101:not 110:shl 111:shr",
+  // 26-31  Flip-Flops & Latches
+  "generate a D flip-flop with inputs clk rst_n (active low) d and outputs q qb",
+  "generate a JK flip-flop with inputs clk rst_n (active low) j k and outputs q qb",
+  "generate a T flip-flop with inputs clk rst_n (active low) t and outputs q qb",
+  "generate an SR flip-flop with inputs clk rst s r and outputs q qb",
+  "generate a D latch with inputs en d and outputs q qb",
+  "generate an SR latch with inputs s r and outputs q qb",
+  // 32-39  Counters & Registers
+  "generate a 4-bit up counter with inputs clk rst (active high) and output q[3:0]",
+  "generate a 4-bit down counter with inputs clk rst (active high) and output q[3:0]",
+  "generate a 4-bit up-down counter with inputs clk rst up_down and output q[3:0]",
+  "generate a BCD decade counter with inputs clk rst and outputs q[3:0] tc",
+  "generate a 4-bit ring counter with inputs clk rst and output q[3:0]",
+  "generate a 4-bit Johnson counter with inputs clk rst and output q[3:0]",
+  "generate an 8-bit SIPO shift register with inputs clk rst sin and output pout[7:0]",
+  "generate an 8-bit barrel shifter with inputs din[7:0] shamt[2:0] dir and output dout[7:0]. dir=0:left shift dir=1:right shift",
+];
+
+function ex(i){ document.getElementById('nlInput').value = EXAMPLES[i]; upd(); }
+function upd(){
+  const len = document.getElementById('nlInput').value.length;
+  document.getElementById('charCnt').textContent = len + ' chars';
+}
+document.getElementById('nlInput').addEventListener('input', upd);
+document.addEventListener('keydown', e => { if(e.ctrlKey && e.key==='Enter') generate(); });
+
+function tog(w){
+  if(w==='ref'){
+    refOn=!refOn;
+    document.getElementById('refTog').className='tog '+(refOn?'on':'off');
+    document.getElementById('refLbl').textContent=refOn?'Enabled':'Disabled';
+  } else {
+    simOn=!simOn;
+    document.getElementById('simTog').className='tog '+(simOn?'on':'off');
+    document.getElementById('simLbl').textContent=simOn?'Enabled':'Disabled';
+  }
+}
+
+function sw(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+}
+
+function prog(p){ document.getElementById('prog').style.width=p+'%'; }
+
+function toast(msg, type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show '+type;
+  setTimeout(()=>t.className='toast', 3000);
+}
+
+async function generate(){
+  const nl = document.getElementById('nlInput').value.trim();
+  if(!nl){ toast('Please enter a requirement','err'); return; }
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled=true;
+  document.getElementById('runIcon').innerHTML='<div class="spin"></div>';
+  document.getElementById('runTxt').textContent='Generating…';
+  prog(20);
+
+  const apiKey = document.getElementById('apiKey').value.trim();
+
+  try {
+    prog(40);
+    const res = await fetch(API+'/generate', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        nl_text:  nl,
+        out_dir:  document.getElementById('outDir').value||'output',
+        seed:     parseInt(document.getElementById('seedOpt').value)||42,
+        run_ref:  refOn,
+        run_sim:  simOn,
+        api_key:  apiKey,
+      })
+    });
+    prog(75);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Server error');
+    prog(95);
+    render(data);
+    prog(100);
+    setTimeout(()=>prog(0), 500);
+    toast('Generated successfully');
+    sw('dut');
+  } catch(e){
+    prog(0);
+    toast('Error: '+e.message,'err');
+    writeTerm('[ERROR] '+e.message+'\n\nMake sure app.py is running:\n  python app.py\n');
+    sw('sim');
+  } finally {
+    btn.disabled=false;
+    document.getElementById('runIcon').textContent='⚙';
+    document.getElementById('runTxt').textContent='Generate Testbench';
+  }
+}
+
+function render(data){
+  const s = data.spec;
+  document.getElementById('spMod').textContent = s.module_name||'—';
+  document.getElementById('spTyp').textContent = s.circuit_type||'—';
+  document.getElementById('spClk').textContent = s.clock_signal||'none';
+  document.getElementById('spRst').textContent = (s.reset_signal||'none') + (s.reset_active_low?' (active-low)':'');
+  document.getElementById('spVec').textContent = s.num_test_vectors||'—';
+
+  document.getElementById('spSigs').innerHTML = (s.signals||[]).map(sig => {
+    let cls = sig.is_clock?'tag clk':sig.is_reset?'tag rst':sig.direction==='output'?'tag out':'tag';
+    let w = sig.width>1?`[${sig.width}] `:'';
+    return `<span class="${cls}">${sig.direction} ${w}${sig.name}</span>`;
+  }).join(' ');
+
+  document.getElementById('spConds').innerHTML = (s.conditions||[]).map(c =>
+    `<div style="margin-bottom:3px">→ <span style="color:var(--accent)">${c.condition}</span> : <span style="color:var(--text2)">${c.expected}</span></div>`
+  ).join('');
+  document.getElementById('specCard').classList.add('show');
+
+  setCode('cDut','wDut','eDut', data.dut_sv||'');
+  setCode('cTb', 'wTb', 'eTb',  data.testbench_sv||'');
+
+  if(data.ref_report) renderRef(data.ref_report, data.ref_vectors||[]);
+  if(data.sim_report) renderSim(data.sim_report);
+}
+
+function setCode(cid, wid, eid, code){
+  if(!code) return;
+  document.getElementById(eid).style.display='none';
+  document.getElementById(wid).style.display='block';
+  const el = document.getElementById(cid);
+  el.textContent = code;
+  if(window.hljs) hljs.highlightElement(el);
+}
+
+function renderRef(report, vectors){
+  const pm=report.match(/PASS\s*:\s*(\d+)/), fm=report.match(/FAIL\s*:\s*(\d+)/);
+  document.getElementById('refPass').textContent = pm?pm[1]:'—';
+  document.getElementById('refFail').textContent = fm?fm[1]:'—';
+  document.getElementById('miniStats').style.display='flex';
+
+  const tbody = document.getElementById('refTbody');
+  if(vectors && vectors.length>0){
+    tbody.innerHTML = vectors.map(v => {
+      const ins  = Object.entries(v.inputs).map(([k,val])=>`${k}=${val}`).join(', ');
+      const outs = Object.entries(v.expected).map(([k,val])=>`${k}=${val}`).join(', ');
+      return `<tr>
+        <td>${v.idx}</td>
+        <td style="color:var(--accent)">${ins}</td>
+        <td style="color:var(--text2)">${outs}</td>
+        <td><span class="pb">PASS</span></td>
+      </tr>`;
+    }).join('');
+  } else {
+    const lines = report.split('\n').filter(l=>/\[PASS\]|\[FAIL\]/.test(l));
+    tbody.innerHTML = lines.slice(0,50).map((l,i)=>{
+      const pass=l.includes('[PASS]');
+      const clean=l.replace(/\[PASS\]|\[FAIL\]/,'').replace(/Vec\s+\d+\s*:/,'').trim();
+      return `<tr><td>${i}</td><td colspan="2" style="color:var(--text2)">${clean}</td><td><span class="${pass?'pb':'fb'}">${pass?'PASS':'FAIL'}</span></td></tr>`;
+    }).join('');
+  }
+}
+
+function writeTerm(text){
+  const el = document.getElementById('term');
+  el.innerHTML = fmtTerm(text) + '<span class="cur"></span>';
+  el.scrollTop = el.scrollHeight;
+}
+
+function fmtTerm(raw){
+  return raw
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\[PASS\]/g,'<span class="t-pass">[PASS]</span>')
+    .replace(/\[FAIL\]/g,'<span class="t-fail">[FAIL]</span>')
+    .replace(/(\*\* (?:Error|Fatal)[^\n]*)/g,'<span class="t-fail">$1</span>')
+    .replace(/(\*\* Warning[^\n]*)/g,'<span class="t-warn">$1</span>')
+    .replace(/(={3,})/g,'<span class="t-dim">$1</span>')
+    .replace(/(SIMULATION REPORT[^\n]*)/g,'<span class="t-head">$1</span>')
+    .replace(/(\bPASS\s*:\s*\d+)/g,'<span class="t-pass">$1</span>')
+    .replace(/(\bFAIL\s*:\s*\d+)/g,'<span class="t-fail">$1</span>')
+    .replace(/(Coverage\s*:[^\n]*)/g,'<span class="t-info">$1</span>');
+}
+
+function renderSim(report){
+  writeTerm(report);
+  const pm=report.match(/PASS\s*:\s*(\d+)/), fm=report.match(/FAIL\s*:\s*(\d+)/);
+  const cm=report.match(/Coverage\s*:\s*([\d.NA%]+)/), tm=report.match(/TOTAL\s*:\s*(\d+)/);
+  document.getElementById('stPass').textContent = pm?pm[1]:'—';
+  document.getElementById('stFail').textContent = fm?fm[1]:'—';
+  document.getElementById('stTot').textContent  = tm?tm[1]:((parseInt(pm?pm[1]:0)||0)+(parseInt(fm?fm[1]:0)||0))||'—';
+  document.getElementById('stCov').textContent  = cm?cm[1]:'N/A';
+  document.getElementById('stats').style.display='grid';
+}
+
+async function runSim(){
+  const btn = document.getElementById('simRunBtn');
+  btn.disabled=true;
+  document.getElementById('simIcon').textContent='…';
+  document.getElementById('simTxt').textContent='Running…';
+  const seed = parseInt(document.getElementById('simSeed').value)||42;
+  writeTerm('  Invoking ModelSim…\n  Seed: '+seed+'\n  Please wait…\n');
+  try {
+    const res = await fetch(API+'/simulate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({seed, api_key: document.getElementById('apiKey').value.trim()})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Simulation failed');
+    renderSim(data.report||'No output');
+    toast('Simulation complete');
+  } catch(e){
+    writeTerm('  [ERROR] '+e.message+'\n\n  Make sure vsim is on your PATH.\n  Generated .sv files are in the output/ folder.\n');
+    toast('Simulation error','err');
+  } finally {
+    btn.disabled=false;
+    document.getElementById('simIcon').textContent='▶';
+    document.getElementById('simTxt').textContent='Run ModelSim';
+  }
+}
+
+function cp(id){
+  navigator.clipboard.writeText(document.getElementById(id).textContent)
+    .then(()=>toast('Copied to clipboard'));
+}
+
+async function chkSrv(){
+  try{
+    const r = await fetch(API+'/health', {signal:AbortSignal.timeout(3000)});
+    if(r.ok){
+      const d = await r.json();
+      document.getElementById('srvDot').className='srv-dot ok';
+      document.getElementById('srvTxt').textContent='backend connected';
+      return;
+    }
+  } catch(e){}
+  document.getElementById('srvDot').className='srv-dot err';
+  document.getElementById('srvTxt').textContent='backend offline — run: python app.py';
+}
+chkSrv();
+setInterval(chkSrv, 8000);
+</script>
+</body>
+</html>

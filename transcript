@@ -1,0 +1,40 @@
+# vlib work
+#  vlog output/dut.sv output/testbench.sv
+# Model Technology ModelSim - Intel FPGA Edition vlog 2020.1 Compiler 2020.02 Feb 28 2020
+# Start time: 18:14:12 on Apr 14,2026
+# vlog output/dut.sv output/testbench.sv 
+# -- Compiling module full_subtractor
+# -- Compiling module tb
+# 
+# Top level modules:
+# 	tb
+# End time: 18:14:12 on Apr 14,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+#  vsim -sv_seed 42 work.tb 
+# vsim -sv_seed 42 work.tb 
+# Start time: 18:14:12 on Apr 14,2026
+# Loading sv_std.std
+# Loading work.tb
+# Loading work.full_subtractor
+#  run -all
+# [PASS] a=0 b=0 bin=0 => diff=0 bout=0
+# [PASS] a=0 b=0 bin=1 => diff=1 bout=1
+# [PASS] a=0 b=1 bin=0 => diff=1 bout=1
+# [PASS] a=0 b=1 bin=1 => diff=0 bout=1
+# [PASS] a=1 b=0 bin=0 => diff=1 bout=0
+# [PASS] a=1 b=0 bin=1 => diff=0 bout=0
+# [PASS] a=1 b=1 bin=0 => diff=0 bout=0
+# [PASS] a=1 b=1 bin=1 => diff=1 bout=1
+# 
+# =====================================
+#   TESTBENCH COMPLETE
+#   PASS  : 8
+#   FAIL  : 0
+#   TOTAL : 8
+# =====================================
+#   ** ALL TESTS PASSED **
+# =====================================
+# ** Note: $finish    : output/testbench.sv(36)
+#    Time: 80 ns  Iteration: 0  Instance: /tb
+# End time: 18:14:13 on Apr 14,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
