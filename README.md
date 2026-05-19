@@ -1,6 +1,6 @@
 # Natural Language–Driven SystemVerilog Generation and Verification Framework
 
-## 📌 Overview
+## Overview
 
 This project presents a **Natural Language–Driven Framework for Automated SystemVerilog Generation and Hardware Verification**.
 It enables users to describe digital circuits in plain English and automatically generates synthesizable RTL, self-checking testbenches, and verification reports.
@@ -9,19 +9,19 @@ The framework integrates parsing, code generation, reference modeling, and simul
 
 ---
 
-## 🚀 Key Features
+##  Key Features
 
-* 🧠 Natural Language → Hardware Specification Parsing
-* ⚙️ Automated DUT (RTL) Generation (SystemVerilog)
-* 🧪 Self-checking Testbench Generation
-* 📊 Python-Based Reference Model for Golden Validation
-* 🖥️ ModelSim Integration for End-to-End Simulation
-* 🌐 Web Interface using Flask
-* 🔁 Modular and Extensible Architecture
+* Natural Language → Hardware Specification Parsing
+* Automated DUT (RTL) Generation (SystemVerilog)
+* Self-checking Testbench Generation
+* Python-Based Reference Model for Golden Validation
+* ModelSim Integration for End-to-End Simulation
+* Web Interface using Flask
+* Modular and Extensible Architecture
 
 ---
 
-## 🏗️ System Architecture
+##  System Architecture
 
 ```
 User Input (Natural Language)
@@ -41,7 +41,7 @@ DUT Generator   Testbench Gen   Reference Model
 
 ---
 
-## ⚙️ Tech Stack
+##  Tech Stack
 
 * **Backend:** Python (Flask)
 * **Frontend:** HTML/CSS/JS
@@ -51,7 +51,7 @@ DUT Generator   Testbench Gen   Reference Model
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```
 .
@@ -70,7 +70,7 @@ DUT Generator   Testbench Gen   Reference Model
 
 ---
 
-## ▶️ Getting Started
+##  Getting Started
 
 ### 1. Clone the Repository
 
@@ -99,7 +99,7 @@ http://localhost:5000
 
 ---
 
-## 🧪 Example
+##  Example
 
 ### Input:
 
@@ -115,7 +115,7 @@ Design a full adder with inputs a, b, cin
 
 ---
 
-## 📊 Key Contributions
+##  Key Contributions
 
 * Natural language–driven hardware specification extraction
 * Automated RTL and testbench generation pipeline
@@ -125,7 +125,7 @@ Design a full adder with inputs a, b, cin
 
 ---
 
-## 🔬 Future Work
+##  Future Work
 
 * Support for complex sequential circuits and FSMs
 * Coverage-driven verification integration
@@ -135,7 +135,7 @@ Design a full adder with inputs a, b, cin
 
 ---
 
-## 👨‍💻 Contributors
+##  Contributors
 
 - **Arpit Agarwal** – Core framework architecture, parser development, backend integration, and project design.
 - **Naman Samadhiya** – SystemVerilog workflow implementation, verification support, simulation integration, testing, and documentation.
