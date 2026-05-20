@@ -137,5 +137,6 @@ Design a full adder with inputs a, b, cin
 
 ##  Contributors
 
-- **Arpit Agarwal** – Core framework architecture, parser development, backend integration, and project design.
-- **Naman Samadhiya** – SystemVerilog workflow implementation, verification support, simulation integration, testing, and documentation.
+- **Arpit Agarwal** – Core framework architecture, backend integration,verification support, simulation integration, testing and project design.
+- **Naman Samadhiya** – SystemVerilog workflow implementation, parser development, and documentation.
+  
